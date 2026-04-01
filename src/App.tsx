@@ -18,6 +18,15 @@ function App() {
 
   const isGameActive = state.currentMode !== 'HOME';
 
+  const handleModeClick = (mode: 'PINPOINT' | 'MULTIPLE_CHOICE' | 'STUDY' | 'MAP') => {
+    if (state.currentMode === mode) {
+      state.endGame();
+    } else {
+      state.setMode(mode);
+      state.startGame();
+    }
+  };
+
   return (
     <div className="app-layout min-h-screen w-full flex flex-col p-4 gap-4 relative select-none">
       {/* ─── Header ─── */}
@@ -39,7 +48,7 @@ function App() {
 
       {/* ─── Content ─── */}
       <div className="app-content flex-1 flex gap-4" style={{ height: 'calc(100vh - 90px)' }}>
-        {/* Sidebar */}
+        {/* Sidebar (desktop only) */}
         <div className={`sidebar w-[280px] h-full glass-panel p-5 rounded-2xl flex flex-col overflow-y-auto ${isGameActive ? 'game-active' : ''}`}>
           {state.currentMode === 'HOME' ? (
             <div className="space-y-4 animate-fade-in">
@@ -173,8 +182,90 @@ function App() {
         {/* Map Area */}
         <div className="map-area flex-1 rounded-2xl overflow-hidden glass-panel relative">
            <WorldMap />
+
+           {/* ─── Mobile Game Overlay ─── */}
+           {/* PINPOINT: target country card */}
+           {state.currentMode === 'PINPOINT' && state.targetCountry && !state.isGameOver && (
+             <div className="mobile-game-overlay">
+               <div className="mobile-target-card">
+                 <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>찾으세요</span>
+                 <span className="text-lg font-extrabold" style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-cyan-accent)' }}>
+                   {state.targetCountry.nameKO}
+                 </span>
+                 {state.mistakeCount > 0 && (
+                   <span className="text-xs font-bold" style={{ color: 'var(--color-danger)' }}>
+                     ❌ {state.mistakeCount}/3
+                   </span>
+                 )}
+               </div>
+             </div>
+           )}
+
+           {/* MULTIPLE_CHOICE: choice buttons */}
+           {state.currentMode === 'MULTIPLE_CHOICE' && state.targetCountry && !state.isGameOver && (
+             <div className="mobile-choices-overlay">
+               {state.choices.map(c => (
+                 <button 
+                   key={c.id} 
+                   onClick={() => state.submitAnswer(c.id)}
+                   className="choice-btn mobile-choice"
+                 >
+                   {c.nameKO}
+                 </button>
+               ))}
+             </div>
+           )}
+
+           {/* Game Over overlay */}
+           {state.isGameOver && (
+             <div className="mobile-gameover-overlay">
+               <div className="glass-panel p-5 rounded-2xl text-center space-y-2" style={{ maxWidth: '280px' }}>
+                 <h3 className="text-xl font-bold" style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-success)' }}>학습 완료!</h3>
+                 <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                   점수 <strong style={{ color: 'var(--color-amber-accent)' }}>{state.score}</strong> · {state.timer}초
+                 </p>
+                 {state.wrongAnswers.length > 0 && (
+                   <div className="text-left text-xs p-2 rounded-lg" style={{ background: 'rgba(248, 113, 113, 0.1)', color: 'var(--color-danger)' }}>
+                     오답: {state.wrongAnswers.map(w => w.nameKO).join(', ')}
+                   </div>
+                 )}
+               </div>
+             </div>
+           )}
         </div>
       </div>
+
+      {/* ─── Mobile Bottom Navigation ─── */}
+      <nav className="mobile-bottom-nav">
+        <button 
+          className={`bottom-nav-item ${state.currentMode === 'PINPOINT' ? 'active' : ''}`}
+          onClick={() => handleModeClick('PINPOINT')}
+        >
+          <span className="bottom-nav-icon">📍</span>
+          <span className="bottom-nav-label">핀포인트</span>
+        </button>
+        <button 
+          className={`bottom-nav-item ${state.currentMode === 'MULTIPLE_CHOICE' ? 'active' : ''}`}
+          onClick={() => handleModeClick('MULTIPLE_CHOICE')}
+        >
+          <span className="bottom-nav-icon">📝</span>
+          <span className="bottom-nav-label">객관식</span>
+        </button>
+        <button 
+          className={`bottom-nav-item ${state.currentMode === 'STUDY' ? 'active' : ''}`}
+          onClick={() => handleModeClick('STUDY')}
+        >
+          <span className="bottom-nav-icon">🔍</span>
+          <span className="bottom-nav-label">학습</span>
+        </button>
+        <button 
+          className={`bottom-nav-item ${state.currentMode === 'MAP' ? 'active' : ''}`}
+          onClick={() => handleModeClick('MAP')}
+        >
+          <span className="bottom-nav-icon">🗺️</span>
+          <span className="bottom-nav-label">지도</span>
+        </button>
+      </nav>
     </div>
   );
 }

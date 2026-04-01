@@ -212,7 +212,17 @@ h1, h2, h3, h4, h5, h6 {
   animation: subtlePulse 2s ease-in-out infinite;
 }
 
-/* ─── Mobile Bottom Sheet ─── */
+/* ─── Mobile Bottom Nav ─── */
+.mobile-bottom-nav {
+  display: none;
+}
+
+.mobile-game-overlay,
+.mobile-choices-overlay,
+.mobile-gameover-overlay {
+  display: none;
+}
+
 @media (max-width: 768px) {
   body {
     overflow: hidden;
@@ -244,36 +254,19 @@ h1, h2, h3, h4, h5, h6 {
   .app-content {
     flex-direction: column !important;
     gap: 0 !important;
-    height: 100% !important;
+    flex: 1;
     overflow: hidden;
+  }
+
+  /* Hide sidebar on mobile */
+  .sidebar {
+    display: none !important;
   }
 
   .map-area {
     flex: 1;
     border-radius: 0 !important;
-    order: 1;
     min-height: 0;
-  }
-
-  .sidebar {
-    width: 100% !important;
-    max-height: 45dvh;
-    min-height: 0;
-    order: 2;
-    border-radius: 20px 20px 0 0 !important;
-    overflow-y: auto;
-    padding: 16px !important;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
-    flex-shrink: 0;
-    z-index: 15;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
-  }
-
-  .sidebar.game-active {
-    max-height: none;
-    height: auto;
-    flex-shrink: 1;
   }
 
   .stat-badge {
@@ -281,17 +274,104 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.75rem;
   }
 
-  .mode-btn {
-    padding: 12px 14px;
-    font-size: 0.88rem;
+  /* ─── Bottom Navigation Bar ─── */
+  .mobile-bottom-nav {
+    display: flex !important;
+    justify-content: space-around;
+    align-items: center;
+    background: var(--color-glass-bg);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border-top: 1px solid var(--color-border-subtle);
+    padding: 6px 0;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+    flex-shrink: 0;
+    z-index: 30;
   }
 
-  .target-card {
-    padding: 14px;
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 200ms;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  .target-card .target-name {
-    font-size: 1.5rem !important;
+  .bottom-nav-item.active {
+    color: var(--color-cyan-accent);
+    background: rgba(34, 211, 238, 0.1);
+  }
+
+  .bottom-nav-icon {
+    font-size: 1.3rem;
+    line-height: 1;
+  }
+
+  .bottom-nav-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  /* ─── Mobile Game Overlays ─── */
+  .mobile-game-overlay {
+    display: block !important;
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .mobile-target-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--color-glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 16px;
+    padding: 10px 20px;
+    white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .mobile-choices-overlay {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    z-index: 10;
+  }
+
+  .mobile-choices-overlay .mobile-choice {
+    padding: 12px 8px !important;
+    font-size: 0.9rem !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .mobile-gameover-overlay {
+    display: flex !important;
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
   }
 }
 
