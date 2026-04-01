@@ -216,7 +216,13 @@ export const WorldMap = memo(() => {
           zoom={position.zoom} 
           maxZoom={20}
           onMoveStart={() => setIsAutoPanning(false)}
-          onMoveEnd={(pos) => setPosition(pos)}
+          onMoveEnd={(pos) => {
+            // Wrap longitude to keep center copy visible
+            let [lng, lat] = pos.coordinates;
+            while (lng > 180) lng -= 360;
+            while (lng < -180) lng += 360;
+            setPosition({ ...pos, coordinates: [lng, lat] as [number, number] });
+          }}
           style={{ transition: isAutoPanning ? "transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)" : "none" }}
         >
           {/* 3-copy seamless wrapping */}
@@ -290,67 +296,75 @@ export const WorldMap = memo(() => {
             </g>
           ))}
 
-          {/* MAP mode: country name labels */}
-          {currentMode === 'MAP' && [...visibleLabels]
-            .sort((a, b) => {
-              if (a.nameEN === hoveredName) return 1;
-              if (b.nameEN === hoveredName) return -1;
-              return 0;
-            })
-            .map(label => {
-            const fontSize = Math.max(2, 6 / position.zoom);
-            const isLabelHovered = hoveredName === label.nameEN;
-            return (
-              <Marker key={label.id} coordinates={label.coordinates}>
-                <text
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  style={{
-                    fontFamily: 'Outfit, sans-serif',
-                    fontSize: isLabelHovered ? `${fontSize * 1.3}px` : `${fontSize}px`,
-                    fill: isLabelHovered ? '#22d3ee' : '#c8d8ec',
-                    fontWeight: isLabelHovered ? 700 : (label.area >= MEDIUM_AREA_THRESHOLD ? 600 : 400),
-                    pointerEvents: 'none',
-                    paintOrder: 'stroke',
-                    stroke: '#060d18',
-                    strokeWidth: isLabelHovered ? `${Math.max(0.5, 2 / position.zoom)}px` : `${Math.max(0.3, 1 / position.zoom)}px`,
-                    strokeLinejoin: 'round',
-                    transition: 'all 200ms',
-                  }}
-                >
-                  {label.nameKO}
-                </text>
-              </Marker>
-            );
-          })}
+          {/* MAP mode: country name labels — 3-copy */}
+          {currentMode === 'MAP' && [-1, 0, 1].map(offset => (
+            <g key={`labels-${offset}`} transform={`translate(${offset * 2 * Math.PI * 120}, 0)`}>
+              {[...visibleLabels]
+                .sort((a, b) => {
+                  if (a.nameEN === hoveredName) return 1;
+                  if (b.nameEN === hoveredName) return -1;
+                  return 0;
+                })
+                .map(label => {
+                const fontSize = Math.max(2, 6 / position.zoom);
+                const isLabelHovered = hoveredName === label.nameEN;
+                return (
+                  <Marker key={`${label.id}-${offset}`} coordinates={label.coordinates}>
+                    <text
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      style={{
+                        fontFamily: 'Outfit, sans-serif',
+                        fontSize: isLabelHovered ? `${fontSize * 1.3}px` : `${fontSize}px`,
+                        fill: isLabelHovered ? '#22d3ee' : '#c8d8ec',
+                        fontWeight: isLabelHovered ? 700 : (label.area >= MEDIUM_AREA_THRESHOLD ? 600 : 400),
+                        pointerEvents: 'none',
+                        paintOrder: 'stroke',
+                        stroke: '#060d18',
+                        strokeWidth: isLabelHovered ? `${Math.max(0.5, 2 / position.zoom)}px` : `${Math.max(0.3, 1 / position.zoom)}px`,
+                        strokeLinejoin: 'round',
+                        transition: 'all 200ms',
+                      }}
+                    >
+                      {label.nameKO}
+                    </text>
+                  </Marker>
+                );
+              })}
+            </g>
+          ))}
 
-          {/* Quiz modes: show names on correctly answered countries */}
-          {(currentMode === 'PINPOINT' || currentMode === 'MULTIPLE_CHOICE') && labelData
-            .filter(label => correctAnswerIds.includes(label.id))
-            .map(label => {
-              const fontSize = Math.max(2, 5 / position.zoom);
-              return (
-                <Marker key={`correct-${label.id}`} coordinates={label.coordinates}>
-                  <text
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    style={{
-                      fontFamily: 'Outfit, sans-serif',
-                      fontSize: `${fontSize}px`,
-                      fill: '#34d399',
-                      fontWeight: 600,
-                      pointerEvents: 'none',
-                      paintOrder: 'stroke',
-                      stroke: '#060d18',
-                      strokeWidth: `${Math.max(0.3, 1 / position.zoom)}px`,
-                      strokeLinejoin: 'round',
-                    }}
-                  >
-                    {label.nameKO}
-                  </text>
-                </Marker>
-              );
-            })}
+          {/* Quiz modes: show names on correctly answered countries — 3-copy */}
+          {(currentMode === 'PINPOINT' || currentMode === 'MULTIPLE_CHOICE') && [-1, 0, 1].map(offset => (
+            <g key={`correct-labels-${offset}`} transform={`translate(${offset * 2 * Math.PI * 120}, 0)`}>
+              {labelData
+                .filter(label => correctAnswerIds.includes(label.id))
+                .map(label => {
+                  const fontSize = Math.max(2, 5 / position.zoom);
+                  return (
+                    <Marker key={`correct-${label.id}-${offset}`} coordinates={label.coordinates}>
+                      <text
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        style={{
+                          fontFamily: 'Outfit, sans-serif',
+                          fontSize: `${fontSize}px`,
+                          fill: '#34d399',
+                          fontWeight: 600,
+                          pointerEvents: 'none',
+                          paintOrder: 'stroke',
+                          stroke: '#060d18',
+                          strokeWidth: `${Math.max(0.3, 1 / position.zoom)}px`,
+                          strokeLinejoin: 'round',
+                        }}
+                      >
+                        {label.nameKO}
+                      </text>
+                    </Marker>
+                  );
+                })}
+            </g>
+          ))}
         </ZoomableGroup>
       </ComposableMap>
     </div>
