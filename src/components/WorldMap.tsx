@@ -19,7 +19,6 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
   const [position, setPosition] = useState({ coordinates: [0, 20] as [number, number], zoom: 1 });
   const [isAutoPanning, setIsAutoPanning] = useState(false);
 
-  // 다음 문제가 시작될 때 해당 나라 근처로 부드럽게 화면을 이동(Zoom & Pan)
   useEffect(() => {
     let timer: number;
     if (targetCountry && geoData.length > 0) {
@@ -65,19 +64,24 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
   const currentHover = countryList.find(c => c.nameEN === hoveredName);
 
   return (
-    <div className="w-full h-full relative group bg-blue-900/10">
+    <div className="w-full h-full relative" style={{ background: 'var(--color-ocean-deep)' }}>
+      {/* Study mode tooltip */}
       {currentMode === 'STUDY' && currentHover && (
-        <div className="absolute top-4 left-4 z-10 glass-panel p-4 rounded-xl shadow-lg border-2 border-neon-green">
-          <p className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-emerald-600">
+        <div 
+          className="absolute top-4 left-4 z-10 glass-panel p-4 rounded-xl animate-fade-in"
+          style={{ borderLeft: '3px solid var(--color-cyan-accent)' }}
+        >
+          <p className="text-2xl font-bold" style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-cyan-accent)' }}>
             {currentHover.nameKO}
           </p>
-          <p className="text-slate-400 mt-1">{currentHover.region}</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>{currentHover.region}</p>
         </div>
       )}
 
       <ComposableMap 
         projection="geoMercator" 
         projectionConfig={{ scale: 120, rotate: [-150, 0, 0] }}
+        style={{ width: '100%', height: '100%' }}
       >
         <ZoomableGroup 
           center={position.coordinates} 
@@ -98,13 +102,14 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
                 const isTarget = targetCountry && matchedCountry && matchedCountry.id === targetCountry.id;
                 const isFailed = isTarget && mistakeCount >= 3;
                 
-                let fill = "#1e293b"; 
-                if (!matchedCountry) fill = "#0f172a"; 
+                // Dark Cartographic color system
+                let fill = "#162a4a";       // land-base
+                if (!matchedCountry) fill = "#0a1628";  // ocean-deep (unmapped territories)
 
                 if (currentMode === 'PINPOINT') {
-                  if (isFailed) fill = "#ef4444"; 
+                  if (isFailed) fill = "#f87171";
                 } else if (currentMode === 'MULTIPLE_CHOICE') {
-                  if (isTarget) fill = "#3b82f6"; 
+                  if (isTarget) fill = "#22d3ee";
                 }
 
                 return (
@@ -119,18 +124,19 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
                       default: {
                         fill,
                         outline: "none",
-                        stroke: "#334155",
+                        stroke: "#0f1f38",
                         strokeWidth: 0.5,
                         transition: 'all 250ms'
                       },
                       hover: {
-                        fill: currentMode === 'STUDY' && matchedCountry ? "#39ff14" : 
-                             (currentMode === 'PINPOINT' ? "#3b82f6" : fill),
+                        fill: currentMode === 'STUDY' && matchedCountry ? "#22d3ee" : 
+                             (currentMode === 'PINPOINT' ? "#f0a500" : 
+                             (currentMode === 'DRAG_DROP' ? "#f0a500" : fill)),
                         outline: "none",
-                        cursor: (currentMode === 'PINPOINT' || currentMode === 'STUDY') ? "pointer" : "default"
+                        cursor: (currentMode === 'PINPOINT' || currentMode === 'STUDY' || currentMode === 'DRAG_DROP') ? "pointer" : "default"
                       },
                       pressed: {
-                        fill: "#2563eb",
+                        fill: "#0891b2",
                         outline: "none",
                       },
                     }}

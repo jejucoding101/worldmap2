@@ -1,25 +1,314 @@
 @import "tailwindcss";
 
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
+
 @theme {
-  --color-dark-bg: #0f172a;
-  --color-dark-card: rgba(30, 41, 59, 0.7);
-  --color-neon-green: #39ff14;
-  --color-neon-yellow: #facc15;
-  --color-neon-red: #ef4444;
+  --color-ocean-deep: #0a1628;
+  --color-ocean-mid: #0f1f38;
+  --color-ocean-surface: #162a4a;
+  --color-land-base: #1e3a5f;
+  --color-land-hover: #2d5a8a;
+  --color-amber-accent: #f0a500;
+  --color-amber-soft: #d4930a;
+  --color-cyan-accent: #22d3ee;
+  --color-cyan-soft: #0891b2;
+  --color-success: #34d399;
+  --color-danger: #f87171;
+  --color-text-primary: #e8edf5;
+  --color-text-muted: #8899b4;
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-glass-bg: rgba(15, 31, 56, 0.85);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background-color: var(--color-dark-bg);
-  color: #f8fafc;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--color-ocean-deep);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ─── Glass Panel ─── */
+.glass-panel {
+  background: var(--color-glass-bg);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ─── Mode Buttons ─── */
+.mode-btn {
+  position: relative;
+  padding: 14px 16px;
+  border-radius: 12px;
+  width: 100%;
+  text-align: left;
+  font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-ocean-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
-.glass-panel {
-  background: var(--color-dark-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+.mode-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.mode-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.mode-btn:hover::before {
+  opacity: 1;
+}
+
+.mode-btn:active {
+  transform: translateY(0);
+}
+
+.mode-btn.pinpoint {
+  background: linear-gradient(135deg, var(--color-ocean-surface), #1a2f5a);
+  border-left: 3px solid var(--color-cyan-accent);
+}
+
+.mode-btn.multiple {
+  background: linear-gradient(135deg, var(--color-ocean-surface), #1a3a3a);
+  border-left: 3px solid var(--color-success);
+}
+
+.mode-btn.dragdrop {
+  background: linear-gradient(135deg, var(--color-ocean-surface), #2a2a1a);
+  border-left: 3px solid var(--color-amber-accent);
+}
+
+.mode-btn.study {
+  background: linear-gradient(135deg, var(--color-ocean-surface), #1a2a2a);
+  border-left: 3px solid var(--color-text-muted);
+}
+
+/* ─── Score Badges ─── */
+.stat-badge {
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-family: 'Outfit', monospace;
+  font-weight: 600;
+  font-size: 0.85rem;
+  background: var(--color-ocean-surface);
+  border: 1px solid var(--color-border-subtle);
+  letter-spacing: 0.02em;
+}
+
+/* ─── Select Dropdown ─── */
+.region-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--color-ocean-surface);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238899b4' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.region-select:focus {
+  border-color: var(--color-cyan-accent);
+}
+
+/* ─── Choice Buttons ─── */
+.choice-btn {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-ocean-surface);
+  color: var(--color-text-primary);
+  text-align: left;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.choice-btn:hover {
+  background: var(--color-land-hover);
+  border-color: var(--color-cyan-accent);
+  transform: translateX(4px);
+}
+
+/* ─── Back Button ─── */
+.back-btn {
+  padding: 12px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.back-btn:hover {
+  background: var(--color-ocean-surface);
+  color: var(--color-text-primary);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ─── Target Card ─── */
+.target-card {
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, var(--color-ocean-surface), var(--color-ocean-mid));
+  border: 1px solid var(--color-border-subtle);
+  text-align: center;
+}
+
+/* ─── Animations ─── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes subtlePulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.7; }
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+.animate-subtle-pulse {
+  animation: subtlePulse 2s ease-in-out infinite;
+}
+
+/* ─── Mobile Bottom Sheet ─── */
+@media (max-width: 768px) {
+  body {
+    overflow: hidden;
+  }
+
+  .app-layout {
+    flex-direction: column !important;
+    height: 100dvh;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  .app-header {
+    margin: 0;
+    border-radius: 0 !important;
+    padding: 10px 16px !important;
+    flex-shrink: 0;
+    z-index: 20;
+  }
+
+  .app-header h1 {
+    font-size: 1rem !important;
+  }
+
+  .app-content {
+    flex-direction: column !important;
+    gap: 0 !important;
+    height: 100% !important;
+    overflow: hidden;
+  }
+
+  .map-area {
+    flex: 1;
+    border-radius: 0 !important;
+    order: 1;
+    min-height: 0;
+  }
+
+  .sidebar {
+    width: 100% !important;
+    max-height: 45dvh;
+    min-height: 0;
+    order: 2;
+    border-radius: 20px 20px 0 0 !important;
+    overflow-y: auto;
+    padding: 16px !important;
+    flex-shrink: 0;
+    z-index: 15;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  .sidebar.game-active {
+    max-height: 32dvh;
+  }
+
+  .stat-badge {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+  }
+
+  .mode-btn {
+    padding: 12px 14px;
+    font-size: 0.88rem;
+  }
+
+  .target-card {
+    padding: 14px;
+  }
+
+  .target-card .target-name {
+    font-size: 1.5rem !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .app-header h1 {
+    font-size: 0.88rem !important;
+  }
+
+  .stat-badge {
+    padding: 3px 8px;
+    font-size: 0.7rem;
+  }
+}
+
+/* ─── Scrollbar ─── */
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
 }
