@@ -238,8 +238,16 @@ export const WorldMap = memo(() => {
           </Geographies>
 
           {/* MAP mode: country name labels */}
-          {currentMode === 'MAP' && visibleLabels.map(label => {
+          {currentMode === 'MAP' && [...visibleLabels]
+            .sort((a, b) => {
+              // Hovered label renders last (on top)
+              if (a.nameEN === hoveredName) return 1;
+              if (b.nameEN === hoveredName) return -1;
+              return 0;
+            })
+            .map(label => {
             const fontSize = Math.max(2, 6 / position.zoom);
+            const isLabelHovered = hoveredName === label.nameEN;
             return (
               <Marker key={label.id} coordinates={label.coordinates}>
                 <text
@@ -247,15 +255,15 @@ export const WorldMap = memo(() => {
                   dominantBaseline="central"
                   style={{
                     fontFamily: 'Outfit, sans-serif',
-                    fontSize: `${fontSize}px`,
-                    fill: '#c8d8ec',
-                    fontWeight: label.area >= MEDIUM_AREA_THRESHOLD ? 600 : 400,
+                    fontSize: isLabelHovered ? `${fontSize * 1.3}px` : `${fontSize}px`,
+                    fill: isLabelHovered ? '#22d3ee' : '#c8d8ec',
+                    fontWeight: isLabelHovered ? 700 : (label.area >= MEDIUM_AREA_THRESHOLD ? 600 : 400),
                     pointerEvents: 'none',
-                    textShadow: '0 0 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5)',
                     paintOrder: 'stroke',
                     stroke: '#060d18',
-                    strokeWidth: `${Math.max(0.3, 1 / position.zoom)}px`,
+                    strokeWidth: isLabelHovered ? `${Math.max(0.5, 2 / position.zoom)}px` : `${Math.max(0.3, 1 / position.zoom)}px`,
                     strokeLinejoin: 'round',
+                    transition: 'all 200ms',
                   }}
                 >
                   {label.nameKO}
