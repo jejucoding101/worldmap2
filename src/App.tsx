@@ -40,7 +40,7 @@ function App() {
       {/* ─── Content ─── */}
       <div className="app-content flex-1 flex gap-4" style={{ height: 'calc(100vh - 90px)' }}>
         {/* Sidebar */}
-        <div className={`sidebar w-[280px] glass-panel p-5 rounded-2xl flex flex-col overflow-y-auto ${isGameActive ? 'game-active' : ''}`}>
+        <div className={`sidebar w-[280px] h-full glass-panel p-5 rounded-2xl flex flex-col overflow-y-auto ${isGameActive ? 'game-active' : ''}`}>
           {state.currentMode === 'HOME' ? (
             <div className="space-y-4 animate-fade-in">
               <h2 className="text-lg font-bold pb-3" style={{ fontFamily: 'Outfit, sans-serif', borderBottom: '1px solid var(--color-border-subtle)' }}>
