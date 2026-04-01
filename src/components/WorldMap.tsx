@@ -1,17 +1,18 @@
-import { memo, useState, useEffect } from 'react';
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
+import { memo, useState, useEffect, useMemo } from 'react';
+import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 'react-simple-maps';
 import { geoCentroid } from 'd3-geo';
+import { geoArea } from 'd3-geo';
 import { useAppStore } from '../store/useAppStore';
 import { countryList } from '../data/countries';
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
-interface WorldMapProps {
-  isDragging?: boolean;
-  onDrop?: () => void;
-}
+// Countries that are large enough to always show labels at zoom >= 1
+const LARGE_AREA_THRESHOLD = 0.005;   // ~Russia, Canada, USA, China, Brazil, Australia, India...
+const MEDIUM_AREA_THRESHOLD = 0.001;  // ~Turkey, Spain, France, Germany, Japan...
+const SMALL_AREA_THRESHOLD = 0.0003;  // ~Portugal, South Korea, Iceland...
 
-export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
+export const WorldMap = memo(() => {
   const { currentMode, targetCountry, submitAnswer, mistakeCount, correctAnswerIds } = useAppStore();
   const [hoveredName, setHoveredName] = useState<string | null>(null);
 
@@ -23,7 +24,7 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
     let timer: number;
     if (targetCountry && geoData.length > 0) {
       const feature = geoData.find(g => g.properties.name === targetCountry.nameEN);
-      if (feature && currentMode !== 'STUDY') {
+      if (feature && currentMode !== 'STUDY' && currentMode !== 'MAP') {
         const centroid = geoCentroid(feature);
         setIsAutoPanning(true);
         setPosition({ coordinates: centroid as [number, number], zoom: 2.2 });
@@ -39,7 +40,6 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
 
   const handleCountryClick = (geo: any) => {
     const matched = countryList.find(c => c.nameEN === geo.properties.name);
-    
     if (currentMode === 'PINPOINT') {
       if (!targetCountry || !matched) {
         submitAnswer('unknown');
@@ -49,24 +49,43 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
     }
   };
 
-  const handleMouseUp = (geo: any) => {
-    if (currentMode === 'DRAG_DROP' && isDragging) {
-      if (onDrop) onDrop();
-      const matched = countryList.find(c => c.nameEN === geo.properties.name);
-      if (targetCountry && matched) {
-        submitAnswer(matched.id);
-      } else {
-        submitAnswer('unknown');
-      }
-    }
-  };
-
   const currentHover = countryList.find(c => c.nameEN === hoveredName);
+
+  // Compute label data for MAP mode
+  const labelData = useMemo(() => {
+    if (geoData.length === 0) return [];
+    return geoData
+      .map(geo => {
+        const matched = countryList.find(c => c.nameEN === geo.properties.name);
+        if (!matched) return null;
+        const centroid = geoCentroid(geo);
+        const area = geoArea(geo);
+        return { 
+          id: matched.id,
+          nameKO: matched.nameKO,
+          nameEN: matched.nameEN,
+          coordinates: centroid as [number, number],
+          area
+        };
+      })
+      .filter(Boolean) as { id: string; nameKO: string; nameEN: string; coordinates: [number, number]; area: number }[];
+  }, [geoData]);
+
+  // Determine which labels to show at current zoom
+  const visibleLabels = useMemo(() => {
+    const zoom = position.zoom;
+    return labelData.filter(label => {
+      if (label.area >= LARGE_AREA_THRESHOLD) return zoom >= 1;
+      if (label.area >= MEDIUM_AREA_THRESHOLD) return zoom >= 1.5;
+      if (label.area >= SMALL_AREA_THRESHOLD) return zoom >= 3;
+      return zoom >= 5;
+    });
+  }, [labelData, position.zoom]);
 
   return (
     <div className="w-full h-full relative" style={{ background: '#060d18' }}>
-      {/* Study mode tooltip */}
-      {currentMode === 'STUDY' && currentHover && (
+      {/* Study/MAP mode tooltip */}
+      {(currentMode === 'STUDY' || currentMode === 'MAP') && currentHover && (
         <div 
           className="absolute top-4 left-4 z-10 glass-panel p-4 rounded-xl animate-fade-in"
           style={{ borderLeft: '3px solid var(--color-cyan-accent)' }}
@@ -104,13 +123,11 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
                 const isFailed = isTarget && mistakeCount >= 3;
                 const isCorrectlyAnswered = matchedCountry && correctAnswerIds.includes(matchedCountry.id);
                 
-                // High-contrast color system
-                let fill = "#2a4a6b";       // land - clearly lighter than ocean
-                if (!matchedCountry) fill = "#0c1a2e";  // unmapped territories
+                let fill = "#2a4a6b";
+                if (!matchedCountry) fill = "#0c1a2e";
                 
-                // Correctly answered countries stay green
                 if (isCorrectlyAnswered) {
-                  fill = "#166534";  // dark green for answered
+                  fill = "#166534";
                 }
 
                 if (currentMode === 'PINPOINT') {
@@ -126,7 +143,6 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
                     onMouseEnter={() => setHoveredName(geoName)}
                     onMouseLeave={() => setHoveredName(null)}
                     onClick={() => handleCountryClick(geo)}
-                    onMouseUp={() => handleMouseUp(geo)}
                     style={{
                       default: {
                         fill,
@@ -136,11 +152,10 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
                         transition: 'all 250ms'
                       },
                       hover: {
-                        fill: currentMode === 'STUDY' && matchedCountry ? "#22d3ee" : 
-                             (currentMode === 'PINPOINT' ? "#f0a500" : 
-                             (currentMode === 'DRAG_DROP' ? "#f0a500" : fill)),
+                        fill: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? "#22d3ee" : 
+                             (currentMode === 'PINPOINT' ? "#f0a500" : fill),
                         outline: "none",
-                        cursor: (currentMode === 'PINPOINT' || currentMode === 'STUDY' || currentMode === 'DRAG_DROP') ? "pointer" : "default"
+                        cursor: (currentMode === 'PINPOINT' || currentMode === 'STUDY' || currentMode === 'MAP') ? "pointer" : "default"
                       },
                       pressed: {
                         fill: "#0891b2",
@@ -152,6 +167,33 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
               });
             }}
           </Geographies>
+
+          {/* MAP mode: country name labels */}
+          {currentMode === 'MAP' && visibleLabels.map(label => {
+            const fontSize = Math.max(2, 6 / position.zoom);
+            return (
+              <Marker key={label.id} coordinates={label.coordinates}>
+                <text
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  style={{
+                    fontFamily: 'Outfit, sans-serif',
+                    fontSize: `${fontSize}px`,
+                    fill: '#c8d8ec',
+                    fontWeight: label.area >= MEDIUM_AREA_THRESHOLD ? 600 : 400,
+                    pointerEvents: 'none',
+                    textShadow: '0 0 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5)',
+                    paintOrder: 'stroke',
+                    stroke: '#060d18',
+                    strokeWidth: `${Math.max(0.3, 1 / position.zoom)}px`,
+                    strokeLinejoin: 'round',
+                  }}
+                >
+                  {label.nameKO}
+                </text>
+              </Marker>
+            );
+          })}
         </ZoomableGroup>
       </ComposableMap>
     </div>

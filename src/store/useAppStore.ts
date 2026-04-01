@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { CountryData } from '../data/countries';
 import { countryList } from '../data/countries';
 
-export type GameMode = 'PINPOINT' | 'TYPE_IN' | 'MULTIPLE_CHOICE' | 'DRAG_DROP' | 'STUDY' | 'HOME';
+export type GameMode = 'PINPOINT' | 'TYPE_IN' | 'MULTIPLE_CHOICE' | 'STUDY' | 'MAP' | 'HOME';
 export type Region = 'All' | 'Asia' | 'Europe' | 'Africa' | 'Americas' | 'Oceania';
 
 interface GameState {

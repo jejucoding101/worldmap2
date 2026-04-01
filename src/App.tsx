@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
 import { WorldMap } from './components/WorldMap';
 
@@ -8,34 +8,13 @@ function App() {
   // Timer Effect
   useEffect(() => {
     let interval: number;
-    if (state.targetCountry && !state.isGameOver && state.currentMode !== 'STUDY') {
+    if (state.targetCountry && !state.isGameOver && state.currentMode !== 'STUDY' && state.currentMode !== 'MAP') {
       interval = window.setInterval(() => {
         state.tickTimer();
       }, 1000);
     }
     return () => clearInterval(interval);
   }, [state.targetCountry, state.isGameOver, state.currentMode]);
-
-  // Drag State for Mode 4
-  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-
-  useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      if (isDragging) setDragPos({ x: e.clientX, y: e.clientY });
-    };
-    const onMouseUp = () => {
-      if (isDragging) setIsDragging(false);
-    };
-    if (isDragging) {
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
-    }
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-  }, [isDragging]);
 
   const isGameActive = state.currentMode !== 'HOME';
 
@@ -50,7 +29,7 @@ function App() {
           <div className="stat-badge">
             점수 <span style={{ color: 'var(--color-amber-accent)' }}>{state.score}</span>
           </div>
-          {state.currentMode !== 'STUDY' && state.currentMode !== 'HOME' && (
+          {state.currentMode !== 'STUDY' && state.currentMode !== 'MAP' && state.currentMode !== 'HOME' && (
             <div className="stat-badge">
               <span style={{ color: 'var(--color-danger)' }}>{state.timer}s</span>
             </div>
@@ -95,13 +74,13 @@ function App() {
                   📝 객관식 모드
                   <div className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>하이라이트된 나라 이름 선택</div>
                 </button>
-                <button onClick={() => { state.setMode('DRAG_DROP'); state.startGame(); }} className="mode-btn dragdrop">
-                  🧩 드래그 앤 드롭
-                  <div className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>나라 이름을 지도에 드래그</div>
-                </button>
                 <button onClick={() => { state.setMode('STUDY'); state.startGame(); }} className="mode-btn study">
                   🔍 학습 탐험 모드
                   <div className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>자유롭게 지도 탐험</div>
+                </button>
+                <button onClick={() => { state.setMode('MAP'); state.startGame(); }} className="mode-btn study">
+                  🗺️ 지도 모드
+                  <div className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>나라 이름이 표시된 세계지도</div>
                 </button>
               </div>
             </div>
@@ -110,8 +89,8 @@ function App() {
               <h2 className="text-base font-bold pb-2" style={{ fontFamily: 'Outfit, sans-serif', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-text-muted)' }}>
                 {state.currentMode === 'PINPOINT' && '📍 핀포인트'}
                 {state.currentMode === 'MULTIPLE_CHOICE' && '📝 객관식'}
-                {state.currentMode === 'DRAG_DROP' && '🧩 드래그 앤 드롭'}
                 {state.currentMode === 'STUDY' && '🔍 탐험 모드'}
+                {state.currentMode === 'MAP' && '🗺️ 지도 모드'}
               </h2>
               
               {state.isGameOver ? (
@@ -132,30 +111,14 @@ function App() {
                 </div>
               ) : state.targetCountry ? (
                 <div className="flex-1 flex flex-col mt-3">
-                  {state.currentMode !== 'STUDY' && (
+                  {state.currentMode !== 'STUDY' && state.currentMode !== 'MAP' && (
                     <div className="target-card">
                       <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                         다음 나라를 찾으세요
                       </p>
-                      
-                      {state.currentMode === 'DRAG_DROP' ? (
-                         <div 
-                           onMouseDown={(e) => { setIsDragging(true); setDragPos({ x: e.clientX, y: e.clientY }); }}
-                           className="p-3 rounded-xl text-xl font-bold cursor-grab active:cursor-grabbing"
-                           style={{ 
-                             fontFamily: 'Outfit, sans-serif',
-                             background: 'linear-gradient(135deg, var(--color-amber-accent), var(--color-amber-soft))',
-                             color: 'var(--color-ocean-deep)'
-                           }}
-                         >
-                           {state.targetCountry.nameKO}
-                           <div className="text-xs mt-1" style={{ opacity: 0.7 }}>(지도로 끌어다 놓으세요)</div>
-                         </div>
-                      ) : (
-                         <p className="target-name text-3xl font-extrabold animate-subtle-pulse" style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-cyan-accent)' }}>
-                           {state.targetCountry.nameKO}
-                         </p>
-                      )}
+                      <p className="target-name text-3xl font-extrabold animate-subtle-pulse" style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-cyan-accent)' }}>
+                        {state.targetCountry.nameKO}
+                      </p>
                     </div>
                   )}
 
@@ -180,6 +143,14 @@ function App() {
                        나라 위에 마우스를 올리면 이름이 표시됩니다.
                      </div>
                   )}
+
+                  {state.currentMode === 'MAP' && (
+                     <div className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                       모든 나라 이름이 표시된 세계지도입니다.<br/><br/>
+                       줌인하면 작은 나라 이름도 보입니다.<br/>
+                       마우스를 올리면 한글 이름이 표시됩니다.
+                     </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex-1 mt-4 text-center" style={{ color: 'var(--color-text-muted)' }}>선택된 국가가 없습니다.</div>
@@ -201,29 +172,9 @@ function App() {
 
         {/* Map Area */}
         <div className="map-area flex-1 rounded-2xl overflow-hidden glass-panel relative">
-           <WorldMap isDragging={isDragging} onDrop={() => setIsDragging(false)} />
+           <WorldMap />
         </div>
       </div>
-
-      {/* Drag element overlay */}
-      {isDragging && state.targetCountry && (
-        <div 
-          className="fixed pointer-events-none p-4 rounded-xl shadow-2xl z-50"
-          style={{ 
-            left: dragPos.x, 
-            top: dragPos.y,
-            transform: 'translate(-50%, -50%)',
-            fontFamily: 'Outfit, sans-serif',
-            fontSize: '1.5rem',
-            fontWeight: 700,
-            background: 'linear-gradient(135deg, var(--color-amber-accent), var(--color-amber-soft))',
-            color: 'var(--color-ocean-deep)',
-            border: '2px solid rgba(255,255,255,0.4)'
-          }}
-        >
-          {state.targetCountry.nameKO}
-        </div>
-      )}
     </div>
   );
 }
