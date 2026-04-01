@@ -123,8 +123,8 @@ function App() {
                   )}
 
                   {state.currentMode === 'MULTIPLE_CHOICE' && (
-                    <div className="mt-3 flex flex-col gap-2">
-                       <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>하이라이트된 나라를 고르세요</p>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                       <p className="text-xs col-span-2" style={{ color: 'var(--color-text-muted)' }}>하이라이트된 나라를 고르세요</p>
                        {state.choices.map(c => (
                          <button 
                            key={c.id} 
