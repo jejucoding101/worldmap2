@@ -51,6 +51,25 @@ export const WorldMap = memo(() => {
 
   const currentHover = countryList.find(c => c.nameEN === hoveredName);
 
+  // Manual coordinate overrides for countries with overseas territories
+  const LABEL_OVERRIDES: Record<string, [number, number]> = {
+    'France': [2.5, 46.5],
+    'United States of America': [-98, 39],
+    'Russia': [90, 62],
+    'Netherlands': [5.3, 52.2],
+    'Denmark': [9.5, 56],
+    'Norway': [10, 62],
+    'New Zealand': [174, -41],
+    'Chile': [-71, -35],
+    'Indonesia': [118, -2],
+    'Malaysia': [109, 4],
+    'Japan': [138, 36],
+    'United Kingdom': [-2, 54],
+    'Portugal': [-8, 39.5],
+    'Spain': [-3.5, 40],
+    'Ecuador': [-78, -1.5],
+  };
+
   // Compute label data for MAP mode
   const labelData = useMemo(() => {
     if (geoData.length === 0) return [];
@@ -60,11 +79,12 @@ export const WorldMap = memo(() => {
         if (!matched) return null;
         const centroid = geoCentroid(geo);
         const area = geoArea(geo);
+        const overridden = LABEL_OVERRIDES[matched.nameEN];
         return { 
           id: matched.id,
           nameKO: matched.nameKO,
           nameEN: matched.nameEN,
-          coordinates: centroid as [number, number],
+          coordinates: (overridden || centroid) as [number, number],
           area
         };
       })
