@@ -13,7 +13,7 @@ const MEDIUM_AREA_THRESHOLD = 0.001;  // ~Turkey, Spain, France, Germany, Japan.
 const SMALL_AREA_THRESHOLD = 0.0003;  // ~Portugal, South Korea, Iceland...
 
 export const WorldMap = memo(() => {
-  const { currentMode, targetCountry, submitAnswer, mistakeCount, correctAnswerIds, feedback } = useAppStore();
+  const { currentMode, targetCountry, submitAnswer, mistakeCount, correctAnswerIds, feedback, hintCountryIds, useHint } = useAppStore();
   const [hoveredName, setHoveredName] = useState<string | null>(null);
 
   const [geoData, setGeoData] = useState<any[]>([]);
@@ -97,29 +97,63 @@ export const WorldMap = memo(() => {
         </div>
       )}
 
-      {/* Feedback overlay */}
-      {feedback && (
-        <div 
-          className="absolute top-1/2 left-1/2 z-20 p-5 rounded-2xl animate-fade-in"
+      {/* Hint button */}
+      {currentMode === 'PINPOINT' && targetCountry && !feedback && (
+        <button
+          onClick={useHint}
+          className="absolute top-4 right-4 z-10 glass-panel px-4 py-2 rounded-xl animate-fade-in"
           style={{ 
-            transform: 'translate(-50%, -50%)',
-            background: feedback.type === 'correct' ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)',
-            backdropFilter: 'blur(8px)',
-            border: `2px solid ${feedback.type === 'correct' ? '#34d399' : '#f87171'}`,
-            textAlign: 'center',
-            pointerEvents: 'none',
-            minWidth: '180px',
+            cursor: hintCountryIds.length > 0 ? 'default' : 'pointer',
+            opacity: hintCountryIds.length > 0 ? 0.5 : 1,
+            border: '1px solid var(--color-amber-accent)',
+            color: 'var(--color-amber-accent)',
+            fontFamily: 'Outfit, sans-serif',
+            fontWeight: 600,
+            fontSize: '0.85rem',
           }}
+          disabled={hintCountryIds.length > 0}
         >
-          <div style={{ fontSize: '2rem' }}>{feedback.type === 'correct' ? '✅' : '❌'}</div>
-          <p className="text-xl font-bold mt-1" style={{ fontFamily: 'Outfit, sans-serif', color: 'white' }}>
-            {feedback.countryName}
-          </p>
-          <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.8)' }}>
-            {feedback.type === 'correct' ? '정답!' : '오답!'}
-          </p>
-        </div>
+          💡 힌트
+        </button>
       )}
+
+      {/* Feedback overlay */}
+      {feedback && (() => {
+        const bgColor = feedback.type === 'correct' ? 'rgba(16, 185, 129, 0.9)' 
+          : feedback.type === 'reveal' ? 'rgba(240, 165, 0, 0.9)' 
+          : 'rgba(239, 68, 68, 0.9)';
+        const borderColor = feedback.type === 'correct' ? '#34d399' 
+          : feedback.type === 'reveal' ? '#f0a500' 
+          : '#f87171';
+        const emoji = feedback.type === 'correct' ? '✅' 
+          : feedback.type === 'reveal' ? '📍' 
+          : '❌';
+        const label = feedback.type === 'correct' ? '정답!' 
+          : feedback.type === 'reveal' ? '정답은 여기!' 
+          : '오답!';
+
+        return (
+          <div 
+            className="absolute top-4 left-1/2 z-20 px-5 py-3 rounded-xl animate-fade-in flex items-center gap-3"
+            style={{ 
+              transform: 'translateX(-50%)',
+              background: bgColor,
+              backdropFilter: 'blur(8px)',
+              border: `1px solid ${borderColor}`,
+              pointerEvents: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>{emoji}</span>
+            <span className="font-bold" style={{ fontFamily: 'Outfit, sans-serif', color: 'white', fontSize: '0.95rem' }}>
+              {feedback.countryName}
+            </span>
+            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              {label}
+            </span>
+          </div>
+        );
+      })()}
 
       <ComposableMap 
         projection="geoMercator" 
@@ -146,6 +180,7 @@ export const WorldMap = memo(() => {
                 const isTarget = targetCountry && matchedCountry && matchedCountry.id === targetCountry.id;
                 const isFailed = isTarget && mistakeCount >= 3;
                 const isCorrectlyAnswered = matchedCountry && correctAnswerIds.includes(matchedCountry.id);
+                const isHinted = matchedCountry && hintCountryIds.includes(matchedCountry.id);
                 
                 let fill = "#2a4a6b";
                 if (!matchedCountry) fill = "#0c1a2e";
@@ -154,8 +189,15 @@ export const WorldMap = memo(() => {
                   fill = "#166534";
                 }
 
+                // Hint highlight (softer glow)
+                if (isHinted && !isCorrectlyAnswered) {
+                  fill = "#1e3a5f";
+                }
+
                 if (currentMode === 'PINPOINT') {
                   if (isFailed) fill = "#f87171";
+                  // When feedback reveals correct answer
+                  if (isTarget && feedback?.type === 'reveal') fill = "#f0a500";
                 } else if (currentMode === 'MULTIPLE_CHOICE') {
                   if (isTarget) fill = "#22d3ee";
                 }

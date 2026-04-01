@@ -6,7 +6,7 @@ export type GameMode = 'PINPOINT' | 'TYPE_IN' | 'MULTIPLE_CHOICE' | 'STUDY' | 'M
 export type Region = 'All' | 'Asia' | 'Europe' | 'Africa' | 'Americas' | 'Oceania';
 
 export interface Feedback {
-  type: 'correct' | 'wrong';
+  type: 'correct' | 'wrong' | 'reveal';
   countryName: string;
 }
 
@@ -25,6 +25,7 @@ interface GameState {
   isGameOver: boolean;
   feedback: Feedback | null;
   isTransitioning: boolean;
+  hintCountryIds: string[];
   
   setMode: (mode: GameMode) => void;
   setRegion: (region: Region) => void;
@@ -34,6 +35,7 @@ interface GameState {
   endGame: () => void;
   tickTimer: () => void;
   clearFeedback: () => void;
+  useHint: () => void;
 }
 
 export const useAppStore = create<GameState>((set, get) => {
@@ -55,9 +57,10 @@ export const useAppStore = create<GameState>((set, get) => {
         mistakeCount: 0,
         feedback: null,
         isTransitioning: false,
+        hintCountryIds: [],
       }));
     } else {
-      set({ isGameOver: true, targetCountry: null, feedback: null, isTransitioning: false });
+      set({ isGameOver: true, targetCountry: null, feedback: null, isTransitioning: false, hintCountryIds: [] });
     }
   };
 
@@ -75,6 +78,7 @@ export const useAppStore = create<GameState>((set, get) => {
     isGameOver: false,
     feedback: null,
     isTransitioning: false,
+    hintCountryIds: [],
     
     setMode: (mode) => set({ currentMode: mode }),
     
@@ -101,6 +105,7 @@ export const useAppStore = create<GameState>((set, get) => {
         isGameOver: false,
         feedback: null,
         isTransitioning: false,
+        hintCountryIds: [],
       });
     },
 
@@ -125,11 +130,6 @@ export const useAppStore = create<GameState>((set, get) => {
         // Delay before advancing to next question
         setTimeout(() => advanceToNext(), 1200);
       } else {
-        set(s => ({
-          feedback: { type: 'wrong', countryName: s.targetCountry!.nameKO },
-        }));
-        // Clear wrong feedback quickly
-        setTimeout(() => set({ feedback: null }), 800);
         get().addMistake();
       }
       return isCorrect;
@@ -142,7 +142,7 @@ export const useAppStore = create<GameState>((set, get) => {
           const isAlreadyAdded = state.wrongAnswers.some(c => c.id === state.targetCountry!.id);
           const newWrongAnswers = isAlreadyAdded ? state.wrongAnswers : [...state.wrongAnswers, state.targetCountry];
           
-          // Show wrong feedback then advance
+          // Show reveal feedback (correct answer location) then advance
           setTimeout(() => {
             const s = get();
             const currentIndex = s.activeCountries.findIndex(c => c.id === s.targetCountry?.id);
@@ -154,22 +154,36 @@ export const useAppStore = create<GameState>((set, get) => {
                 choices: prev.currentMode === 'MULTIPLE_CHOICE' ? generateChoices(nextTarget, prev.activeCountries) : [],
                 feedback: null,
                 isTransitioning: false,
+                hintCountryIds: [],
               }));
             } else {
-              set({ isGameOver: true, targetCountry: null, feedback: null, isTransitioning: false });
+              set({ isGameOver: true, targetCountry: null, feedback: null, isTransitioning: false, hintCountryIds: [] });
             }
-          }, 1000);
+          }, 2000);
 
           return { 
             mistakeCount: newMistakes, 
             wrongAnswers: newWrongAnswers,
             isTransitioning: true,
+            feedback: { type: 'reveal' as const, countryName: state.targetCountry.nameKO },
           };
         }
         return { mistakeCount: newMistakes };
       });
     },
     
-    endGame: () => set({ currentMode: 'HOME', targetCountry: null, isGameOver: false, feedback: null, isTransitioning: false })
+    endGame: () => set({ currentMode: 'HOME', targetCountry: null, isGameOver: false, feedback: null, isTransitioning: false, hintCountryIds: [] }),
+    
+    useHint: () => {
+      const { targetCountry, hintCountryIds } = get();
+      if (!targetCountry || hintCountryIds.length > 0) return;
+      
+      const sameRegion = countryList
+        .filter(c => c.region === targetCountry.region && c.id !== targetCountry.id)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 9);
+      
+      set({ hintCountryIds: [targetCountry.id, ...sameRegion.map(c => c.id)] });
+    },
   };
 });
