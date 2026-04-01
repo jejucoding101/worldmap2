@@ -62,7 +62,15 @@ export const WorldMap = memo(() => {
     // Skip click if it was a touch drag
     if (isDragRef.current) return;
 
-    const matched = countryList.find(c => c.nameEN === geo.properties.name);
+    const geoName = geo.properties.name;
+    const matched = countryList.find(c => c.nameEN === geoName);
+
+    // In STUDY/MAP mode, tap to show tooltip
+    if (currentMode === 'STUDY' || currentMode === 'MAP') {
+      setHoveredName(geoName);
+      return;
+    }
+
     if (currentMode === 'PINPOINT') {
       if (!targetCountry || !matched) {
         submitAnswer('unknown');
@@ -252,7 +260,6 @@ export const WorldMap = memo(() => {
                         geography={geo}
                         onMouseEnter={() => setHoveredName(geoName)}
                         onMouseLeave={() => setHoveredName(null)}
-                        onTouchStart={() => setHoveredName(geoName)}
                         onClick={() => offset === 0 && handleCountryClick(geo)}
                         style={{
                           default: {
