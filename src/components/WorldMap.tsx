@@ -208,6 +208,7 @@ export const WorldMap = memo(() => {
                     geography={geo}
                     onMouseEnter={() => setHoveredName(geoName)}
                     onMouseLeave={() => setHoveredName(null)}
+                    onTouchStart={() => setHoveredName(geoName)}
                     onClick={() => handleCountryClick(geo)}
                     style={{
                       default: {
@@ -221,6 +222,8 @@ export const WorldMap = memo(() => {
                         fill: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? "#22d3ee" : 
                              (currentMode === 'PINPOINT' ? "#f0a500" : fill),
                         outline: "none",
+                        stroke: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? "#67e8f9" : "#1a3355",
+                        strokeWidth: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? 1.5 : 0.8,
                         cursor: (currentMode === 'PINPOINT' || currentMode === 'STUDY' || currentMode === 'MAP') ? "pointer" : "default"
                       },
                       pressed: {
