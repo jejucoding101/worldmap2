@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useMemo } from 'react';
+import { memo, useState, useEffect, useMemo, useRef } from 'react';
 import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 'react-simple-maps';
 import { geoCentroid } from 'd3-geo';
 import { geoArea } from 'd3-geo';
@@ -20,6 +20,26 @@ export const WorldMap = memo(() => {
   const [position, setPosition] = useState({ coordinates: [0, 20] as [number, number], zoom: 1 });
   const [isAutoPanning, setIsAutoPanning] = useState(false);
 
+  // Touch drag detection: prevent click on pan/scroll
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const isDragRef = useRef(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    isDragRef.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchStartRef.current.x;
+    const dy = touch.clientY - touchStartRef.current.y;
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+      isDragRef.current = true;
+    }
+  };
+
   useEffect(() => {
     let timer: number;
     if (targetCountry && geoData.length > 0) {
@@ -39,6 +59,9 @@ export const WorldMap = memo(() => {
   }, [targetCountry, geoData, currentMode]);
 
   const handleCountryClick = (geo: any) => {
+    // Skip click if it was a touch drag
+    if (isDragRef.current) return;
+
     const matched = countryList.find(c => c.nameEN === geo.properties.name);
     if (currentMode === 'PINPOINT') {
       if (!targetCountry || !matched) {
@@ -103,7 +126,7 @@ export const WorldMap = memo(() => {
   }, [labelData, position.zoom]);
 
   return (
-    <div className="w-full h-full relative" style={{ background: '#060d18' }}>
+    <div className="w-full h-full relative" style={{ background: '#060d18' }} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove}>
       {/* Study/MAP mode tooltip */}
       {(currentMode === 'STUDY' || currentMode === 'MAP') && currentHover && (
         <div 
