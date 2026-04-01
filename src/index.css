@@ -221,6 +221,7 @@ h1, h2, h3, h4, h5, h6 {
   .app-layout {
     flex-direction: column !important;
     height: 100dvh;
+    height: -webkit-fill-available;
     padding: 0 !important;
     gap: 0 !important;
   }
@@ -259,6 +260,7 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 20px 20px 0 0 !important;
     overflow-y: auto;
     padding: 16px !important;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
     flex-shrink: 0;
     z-index: 15;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
