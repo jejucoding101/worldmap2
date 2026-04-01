@@ -15,6 +15,7 @@ interface GameState {
   score: number;
   timer: number;
   wrongAnswers: CountryData[];
+  correctAnswerIds: string[];
   mistakeCount: number;
   isGameOver: boolean;
   
@@ -42,6 +43,7 @@ export const useAppStore = create<GameState>((set, get) => {
     score: 0,
     timer: 0,
     wrongAnswers: [],
+    correctAnswerIds: [],
     mistakeCount: 0,
     isGameOver: false,
     
@@ -64,6 +66,7 @@ export const useAppStore = create<GameState>((set, get) => {
         score: 0, 
         timer: 0, 
         wrongAnswers: [],
+        correctAnswerIds: [],
         mistakeCount: 0,
         activeCountries: shuffled,
         isGameOver: false
@@ -86,12 +89,13 @@ export const useAppStore = create<GameState>((set, get) => {
           const nextTarget = state.activeCountries[currentIndex + 1];
           set(s => ({ 
             score: s.score + Math.max(1, points), 
+            correctAnswerIds: [...s.correctAnswerIds, s.targetCountry!.id],
             mistakeCount: 0,
             targetCountry: nextTarget,
             choices: s.currentMode === 'MULTIPLE_CHOICE' ? generateChoices(nextTarget, s.activeCountries) : []
           }));
         } else {
-          set(s => ({ score: s.score + Math.max(1, points), isGameOver: true, targetCountry: null }));
+          set(s => ({ score: s.score + Math.max(1, points), correctAnswerIds: [...s.correctAnswerIds, s.targetCountry!.id], isGameOver: true, targetCountry: null }));
         }
       } else {
         get().addMistake();

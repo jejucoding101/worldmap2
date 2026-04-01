@@ -12,7 +12,7 @@ interface WorldMapProps {
 }
 
 export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
-  const { currentMode, targetCountry, submitAnswer, mistakeCount } = useAppStore();
+  const { currentMode, targetCountry, submitAnswer, mistakeCount, correctAnswerIds } = useAppStore();
   const [hoveredName, setHoveredName] = useState<string | null>(null);
 
   const [geoData, setGeoData] = useState<any[]>([]);
@@ -64,7 +64,7 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
   const currentHover = countryList.find(c => c.nameEN === hoveredName);
 
   return (
-    <div className="w-full h-full relative" style={{ background: 'var(--color-ocean-deep)' }}>
+    <div className="w-full h-full relative" style={{ background: '#060d18' }}>
       {/* Study mode tooltip */}
       {currentMode === 'STUDY' && currentHover && (
         <div 
@@ -86,6 +86,7 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
         <ZoomableGroup 
           center={position.coordinates} 
           zoom={position.zoom} 
+          maxZoom={20}
           onMoveStart={() => setIsAutoPanning(false)}
           onMoveEnd={(pos) => setPosition(pos)}
           style={{ transition: isAutoPanning ? "transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)" : "none" }}
@@ -101,10 +102,16 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
                 
                 const isTarget = targetCountry && matchedCountry && matchedCountry.id === targetCountry.id;
                 const isFailed = isTarget && mistakeCount >= 3;
+                const isCorrectlyAnswered = matchedCountry && correctAnswerIds.includes(matchedCountry.id);
                 
-                // Dark Cartographic color system
-                let fill = "#162a4a";       // land-base
-                if (!matchedCountry) fill = "#0a1628";  // ocean-deep (unmapped territories)
+                // High-contrast color system
+                let fill = "#2a4a6b";       // land - clearly lighter than ocean
+                if (!matchedCountry) fill = "#0c1a2e";  // unmapped territories
+                
+                // Correctly answered countries stay green
+                if (isCorrectlyAnswered) {
+                  fill = "#166534";  // dark green for answered
+                }
 
                 if (currentMode === 'PINPOINT') {
                   if (isFailed) fill = "#f87171";
@@ -124,8 +131,8 @@ export const WorldMap = memo(({ isDragging, onDrop }: WorldMapProps) => {
                       default: {
                         fill,
                         outline: "none",
-                        stroke: "#0f1f38",
-                        strokeWidth: 0.5,
+                        stroke: "#1a3355",
+                        strokeWidth: 0.8,
                         transition: 'all 250ms'
                       },
                       hover: {
