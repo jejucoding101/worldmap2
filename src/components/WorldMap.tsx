@@ -13,7 +13,7 @@ const MEDIUM_AREA_THRESHOLD = 0.001;  // ~Turkey, Spain, France, Germany, Japan.
 const SMALL_AREA_THRESHOLD = 0.0003;  // ~Portugal, South Korea, Iceland...
 
 export const WorldMap = memo(() => {
-  const { currentMode, targetCountry, submitAnswer, mistakeCount, correctAnswerIds } = useAppStore();
+  const { currentMode, targetCountry, submitAnswer, mistakeCount, correctAnswerIds, feedback } = useAppStore();
   const [hoveredName, setHoveredName] = useState<string | null>(null);
 
   const [geoData, setGeoData] = useState<any[]>([]);
@@ -94,6 +94,30 @@ export const WorldMap = memo(() => {
             {currentHover.nameKO}
           </p>
           <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>{currentHover.region}</p>
+        </div>
+      )}
+
+      {/* Feedback overlay */}
+      {feedback && (
+        <div 
+          className="absolute top-1/2 left-1/2 z-20 p-5 rounded-2xl animate-fade-in"
+          style={{ 
+            transform: 'translate(-50%, -50%)',
+            background: feedback.type === 'correct' ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)',
+            backdropFilter: 'blur(8px)',
+            border: `2px solid ${feedback.type === 'correct' ? '#34d399' : '#f87171'}`,
+            textAlign: 'center',
+            pointerEvents: 'none',
+            minWidth: '180px',
+          }}
+        >
+          <div style={{ fontSize: '2rem' }}>{feedback.type === 'correct' ? '✅' : '❌'}</div>
+          <p className="text-xl font-bold mt-1" style={{ fontFamily: 'Outfit, sans-serif', color: 'white' }}>
+            {feedback.countryName}
+          </p>
+          <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.8)' }}>
+            {feedback.type === 'correct' ? '정답!' : '오답!'}
+          </p>
         </div>
       )}
 

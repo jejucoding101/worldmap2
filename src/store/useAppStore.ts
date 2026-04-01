@@ -5,19 +5,26 @@ import { countryList } from '../data/countries';
 export type GameMode = 'PINPOINT' | 'TYPE_IN' | 'MULTIPLE_CHOICE' | 'STUDY' | 'MAP' | 'HOME';
 export type Region = 'All' | 'Asia' | 'Europe' | 'Africa' | 'Americas' | 'Oceania';
 
+export interface Feedback {
+  type: 'correct' | 'wrong';
+  countryName: string;
+}
+
 interface GameState {
   currentMode: GameMode;
   selectedRegion: Region;
   activeCountries: CountryData[];
   
   targetCountry: CountryData | null;
-  choices: CountryData[]; // For Multiple Choice
+  choices: CountryData[];
   score: number;
   timer: number;
   wrongAnswers: CountryData[];
   correctAnswerIds: string[];
   mistakeCount: number;
   isGameOver: boolean;
+  feedback: Feedback | null;
+  isTransitioning: boolean;
   
   setMode: (mode: GameMode) => void;
   setRegion: (region: Region) => void;
@@ -26,12 +33,32 @@ interface GameState {
   addMistake: () => void;
   endGame: () => void;
   tickTimer: () => void;
+  clearFeedback: () => void;
 }
 
 export const useAppStore = create<GameState>((set, get) => {
   const generateChoices = (target: CountryData, allList: CountryData[]) => {
     const others = allList.filter(c => c.id !== target.id).sort(() => 0.5 - Math.random()).slice(0, 3);
     return [...others, target].sort(() => 0.5 - Math.random());
+  };
+
+  const advanceToNext = () => {
+    const state = get();
+    if (!state.targetCountry) return;
+    const currentIndex = state.activeCountries.findIndex(c => c.id === state.targetCountry!.id);
+    
+    if (currentIndex >= 0 && currentIndex < state.activeCountries.length - 1) {
+      const nextTarget = state.activeCountries[currentIndex + 1];
+      set(s => ({ 
+        targetCountry: nextTarget,
+        choices: s.currentMode === 'MULTIPLE_CHOICE' ? generateChoices(nextTarget, s.activeCountries) : [],
+        mistakeCount: 0,
+        feedback: null,
+        isTransitioning: false,
+      }));
+    } else {
+      set({ isGameOver: true, targetCountry: null, feedback: null, isTransitioning: false });
+    }
   };
 
   return {
@@ -46,6 +73,8 @@ export const useAppStore = create<GameState>((set, get) => {
     correctAnswerIds: [],
     mistakeCount: 0,
     isGameOver: false,
+    feedback: null,
+    isTransitioning: false,
     
     setMode: (mode) => set({ currentMode: mode }),
     
@@ -69,35 +98,38 @@ export const useAppStore = create<GameState>((set, get) => {
         correctAnswerIds: [],
         mistakeCount: 0,
         activeCountries: shuffled,
-        isGameOver: false
+        isGameOver: false,
+        feedback: null,
+        isTransitioning: false,
       });
     },
 
     tickTimer: () => set(state => ({ timer: state.timer + 1 })),
+    clearFeedback: () => set({ feedback: null }),
     
     submitAnswer: (answerId) => {
       const state = get();
-      if (!state.targetCountry) return false;
+      if (!state.targetCountry || state.isTransitioning) return false;
       
       const isCorrect = state.targetCountry.id === answerId;
       
       if (isCorrect) {
         const points = 3 - state.mistakeCount;
-        const currentIndex = state.activeCountries.findIndex(c => c.id === state.targetCountry!.id);
+        set(s => ({ 
+          score: s.score + Math.max(1, points), 
+          correctAnswerIds: [...s.correctAnswerIds, s.targetCountry!.id],
+          feedback: { type: 'correct', countryName: s.targetCountry!.nameKO },
+          isTransitioning: true,
+        }));
         
-        if (currentIndex >= 0 && currentIndex < state.activeCountries.length - 1) {
-          const nextTarget = state.activeCountries[currentIndex + 1];
-          set(s => ({ 
-            score: s.score + Math.max(1, points), 
-            correctAnswerIds: [...s.correctAnswerIds, s.targetCountry!.id],
-            mistakeCount: 0,
-            targetCountry: nextTarget,
-            choices: s.currentMode === 'MULTIPLE_CHOICE' ? generateChoices(nextTarget, s.activeCountries) : []
-          }));
-        } else {
-          set(s => ({ score: s.score + Math.max(1, points), correctAnswerIds: [...s.correctAnswerIds, s.targetCountry!.id], isGameOver: true, targetCountry: null }));
-        }
+        // Delay before advancing to next question
+        setTimeout(() => advanceToNext(), 1200);
       } else {
+        set(s => ({
+          feedback: { type: 'wrong', countryName: s.targetCountry!.nameKO },
+        }));
+        // Clear wrong feedback quickly
+        setTimeout(() => set({ feedback: null }), 800);
         get().addMistake();
       }
       return isCorrect;
@@ -110,23 +142,34 @@ export const useAppStore = create<GameState>((set, get) => {
           const isAlreadyAdded = state.wrongAnswers.some(c => c.id === state.targetCountry!.id);
           const newWrongAnswers = isAlreadyAdded ? state.wrongAnswers : [...state.wrongAnswers, state.targetCountry];
           
-          const currentIndex = state.activeCountries.findIndex(c => c.id === state.targetCountry!.id);
-          if (currentIndex < state.activeCountries.length - 1) {
-            const nextTarget = state.activeCountries[currentIndex + 1];
-            return { 
-              mistakeCount: 0, 
-              wrongAnswers: newWrongAnswers, 
-              targetCountry: nextTarget,
-              choices: state.currentMode === 'MULTIPLE_CHOICE' ? generateChoices(nextTarget, state.activeCountries) : []
-            };
-          } else {
-            return { mistakeCount: newMistakes, wrongAnswers: newWrongAnswers, isGameOver: true, targetCountry: null };
-          }
+          // Show wrong feedback then advance
+          setTimeout(() => {
+            const s = get();
+            const currentIndex = s.activeCountries.findIndex(c => c.id === s.targetCountry?.id);
+            if (currentIndex >= 0 && currentIndex < s.activeCountries.length - 1) {
+              const nextTarget = s.activeCountries[currentIndex + 1];
+              set(prev => ({
+                mistakeCount: 0,
+                targetCountry: nextTarget,
+                choices: prev.currentMode === 'MULTIPLE_CHOICE' ? generateChoices(nextTarget, prev.activeCountries) : [],
+                feedback: null,
+                isTransitioning: false,
+              }));
+            } else {
+              set({ isGameOver: true, targetCountry: null, feedback: null, isTransitioning: false });
+            }
+          }, 1000);
+
+          return { 
+            mistakeCount: newMistakes, 
+            wrongAnswers: newWrongAnswers,
+            isTransitioning: true,
+          };
         }
         return { mistakeCount: newMistakes };
       });
     },
     
-    endGame: () => set({ currentMode: 'HOME', targetCountry: null, isGameOver: false })
+    endGame: () => set({ currentMode: 'HOME', targetCountry: null, isGameOver: false, feedback: null, isTransitioning: false })
   };
 });
