@@ -250,6 +250,7 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 0 !important;
     order: 1;
     min-height: 0;
+    height: 0; /* force flex shrink to work properly */
   }
 
   .sidebar {
@@ -268,7 +269,9 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .sidebar.game-active {
-    max-height: 32dvh;
+    max-height: none;
+    height: auto;
+    flex-shrink: 1;
   }
 
   .stat-badge {
