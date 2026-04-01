@@ -20,25 +20,30 @@ export const WorldMap = memo(() => {
   const [position, setPosition] = useState({ coordinates: [0, 20] as [number, number], zoom: 1 });
   const [isAutoPanning, setIsAutoPanning] = useState(false);
 
-  // Touch drag detection: prevent click on pan/scroll
+  // Touch drag detection: window-level to bypass SVG event interception
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const isDragRef = useRef(false);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
-    isDragRef.current = false;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStartRef.current) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - touchStartRef.current.x;
-    const dy = touch.clientY - touchStartRef.current.y;
-    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-      isDragRef.current = true;
-    }
-  };
+  useEffect(() => {
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      isDragRef.current = false;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!touchStartRef.current) return;
+      const dx = e.touches[0].clientX - touchStartRef.current.x;
+      const dy = e.touches[0].clientY - touchStartRef.current.y;
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+        isDragRef.current = true;
+      }
+    };
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+    };
+  }, []);
 
   useEffect(() => {
     let timer: number;
@@ -134,7 +139,7 @@ export const WorldMap = memo(() => {
   }, [labelData, position.zoom]);
 
   return (
-    <div className="w-full h-full relative" style={{ background: '#060d18' }} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove}>
+    <div className="w-full h-full relative" style={{ background: '#060d18' }}>
       {/* Study/MAP mode tooltip */}
       {(currentMode === 'STUDY' || currentMode === 'MAP') && currentHover && (
         <div 
@@ -264,8 +269,8 @@ export const WorldMap = memo(() => {
                       <Geography
                         key={`${geo.rsmKey}-${offset}`}
                         geography={geo}
-                        onMouseEnter={() => setHoveredName(geoName)}
-                        onMouseLeave={() => setHoveredName(null)}
+                        onPointerEnter={(e: React.PointerEvent) => { if (e.pointerType === 'mouse') setHoveredName(geoName); }}
+                        onPointerLeave={(e: React.PointerEvent) => { if (e.pointerType === 'mouse') setHoveredName(null); }}
                         onClick={() => offset === 0 && handleCountryClick(geo)}
                         style={{
                           default: {
