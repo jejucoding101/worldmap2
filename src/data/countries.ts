@@ -14,7 +14,7 @@ export const countryList: CountryData[] = [
   { id: 'TWN', nameKO: '타이완', nameEN: 'Taiwan', region: 'Asia' },
   { id: 'VNM', nameKO: '베트남', nameEN: 'Vietnam', region: 'Asia' },
   { id: 'LAO', nameKO: '라오스', nameEN: 'Laos', region: 'Asia' },
-  { id: 'THA', nameKO: '태국', nameEN: 'Thailand', region: 'Asia' },
+  { id: 'THA', nameKO: '타이', nameEN: 'Thailand', region: 'Asia' },
   { id: 'KHM', nameKO: '캄보디아', nameEN: 'Cambodia', region: 'Asia' },
   { id: 'MMR', nameKO: '미얀마', nameEN: 'Myanmar', region: 'Asia' },
   { id: 'MYS', nameKO: '말레이시아', nameEN: 'Malaysia', region: 'Asia' },
