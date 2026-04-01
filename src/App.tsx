@@ -111,7 +111,7 @@ function App() {
                 </div>
               ) : state.targetCountry ? (
                 <div className="flex-1 flex flex-col mt-3">
-                  {state.currentMode !== 'STUDY' && state.currentMode !== 'MAP' && (
+                  {state.currentMode !== 'STUDY' && state.currentMode !== 'MAP' && state.currentMode !== 'MULTIPLE_CHOICE' && (
                     <div className="target-card">
                       <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                         다음 나라를 찾으세요
