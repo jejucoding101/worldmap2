@@ -220,8 +220,11 @@ h1, h2, h3, h4, h5, h6 {
 
   .app-layout {
     flex-direction: column !important;
-    height: 100dvh;
-    height: -webkit-fill-available;
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     padding: 0 !important;
     gap: 0 !important;
   }
