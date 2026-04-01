@@ -188,79 +188,81 @@ export const WorldMap = memo(() => {
           onMoveEnd={(pos) => setPosition(pos)}
           style={{ transition: isAutoPanning ? "transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)" : "none" }}
         >
-          <Geographies geography={geoUrl}>
-            {({ geographies }) => {
-              if (geoData.length === 0 && geographies.length > 0) {
-                setTimeout(() => setGeoData(geographies), 0);
-              }
-              return geographies.map((geo) => {
-                const geoName = geo.properties.name;
-                const matchedCountry = countryList.find(c => c.nameEN === geoName);
-                
-                const isTarget = targetCountry && matchedCountry && matchedCountry.id === targetCountry.id;
-                const isFailed = isTarget && mistakeCount >= 3;
-                const isCorrectlyAnswered = matchedCountry && correctAnswerIds.includes(matchedCountry.id);
-                const isHinted = matchedCountry && hintCountryIds.includes(matchedCountry.id);
-                
-                let fill = "#2a4a6b";
-                if (!matchedCountry) fill = "#0c1a2e";
-                
-                if (isCorrectlyAnswered) {
-                  fill = "#166534";
-                }
+          {/* 3-copy seamless wrapping */}
+          {[-1, 0, 1].map(offset => (
+            <g key={offset} transform={`translate(${offset * 2 * Math.PI * 120}, 0)`}>
+              <Geographies geography={geoUrl}>
+                {({ geographies }) => {
+                  if (offset === 0 && geoData.length === 0 && geographies.length > 0) {
+                    setTimeout(() => setGeoData(geographies), 0);
+                  }
+                  return geographies.map((geo) => {
+                    const geoName = geo.properties.name;
+                    const matchedCountry = countryList.find(c => c.nameEN === geoName);
+                    
+                    const isTarget = targetCountry && matchedCountry && matchedCountry.id === targetCountry.id;
+                    const isFailed = isTarget && mistakeCount >= 3;
+                    const isCorrectlyAnswered = matchedCountry && correctAnswerIds.includes(matchedCountry.id);
+                    const isHinted = matchedCountry && hintCountryIds.includes(matchedCountry.id);
+                    
+                    let fill = "#2a4a6b";
+                    if (!matchedCountry) fill = "#0c1a2e";
+                    
+                    if (isCorrectlyAnswered) {
+                      fill = "#166534";
+                    }
 
-                // Hint highlight (softer glow)
-                if (isHinted && !isCorrectlyAnswered) {
-                  fill = "#1e3a5f";
-                }
+                    if (isHinted && !isCorrectlyAnswered) {
+                      fill = "#1e3a5f";
+                    }
 
-                if (currentMode === 'PINPOINT') {
-                  if (isFailed) fill = "#f87171";
-                  // When feedback reveals correct answer
-                  if (isTarget && feedback?.type === 'reveal') fill = "#f0a500";
-                } else if (currentMode === 'MULTIPLE_CHOICE') {
-                  if (isTarget) fill = "#22d3ee";
-                }
+                    if (currentMode === 'PINPOINT') {
+                      if (isFailed) fill = "#f87171";
+                      if (isTarget && feedback?.type === 'reveal') fill = "#f0a500";
+                    } else if (currentMode === 'MULTIPLE_CHOICE') {
+                      if (isTarget) fill = "#22d3ee";
+                    }
 
-                return (
-                  <Geography
-                    key={geo.rsmKey}
-                    geography={geo}
-                    onMouseEnter={() => setHoveredName(geoName)}
-                    onMouseLeave={() => setHoveredName(null)}
-                    onTouchStart={() => setHoveredName(geoName)}
-                    onClick={() => handleCountryClick(geo)}
-                    style={{
-                      default: {
-                        fill,
-                        outline: "none",
-                        stroke: "#1a3355",
-                        strokeWidth: 0.8,
-                        transition: 'all 250ms'
-                      },
-                      hover: {
-                        fill: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? "#22d3ee" : 
-                             (currentMode === 'PINPOINT' ? "#f0a500" : fill),
-                        outline: "none",
-                        stroke: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? "#67e8f9" : "#1a3355",
-                        strokeWidth: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? 1.5 : 0.8,
-                        cursor: (currentMode === 'PINPOINT' || currentMode === 'STUDY' || currentMode === 'MAP') ? "pointer" : "default"
-                      },
-                      pressed: {
-                        fill: "#0891b2",
-                        outline: "none",
-                      },
-                    }}
-                  />
-                );
-              });
-            }}
-          </Geographies>
+                    return (
+                      <Geography
+                        key={`${geo.rsmKey}-${offset}`}
+                        geography={geo}
+                        onMouseEnter={() => setHoveredName(geoName)}
+                        onMouseLeave={() => setHoveredName(null)}
+                        onTouchStart={() => setHoveredName(geoName)}
+                        onClick={() => offset === 0 && handleCountryClick(geo)}
+                        style={{
+                          default: {
+                            fill,
+                            outline: "none",
+                            stroke: "#1a3355",
+                            strokeWidth: 0.8,
+                            transition: 'all 250ms'
+                          },
+                          hover: {
+                            fill: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? "#22d3ee" : 
+                                 (currentMode === 'PINPOINT' ? "#f0a500" : fill),
+                            outline: "none",
+                            stroke: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? "#67e8f9" : "#1a3355",
+                            strokeWidth: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? 1.5 : 0.8,
+                            cursor: (currentMode === 'PINPOINT' || currentMode === 'STUDY' || currentMode === 'MAP') ? "pointer" : "default"
+                          },
+                          pressed: {
+                            fill: "#0891b2",
+                            outline: "none",
+                          },
+                        }}
+                      />
+                    );
+                  });
+                }}
+              </Geographies>
+            </g>
+          ))}
 
           {/* MAP mode: country name labels */}
           {currentMode === 'MAP' && [...visibleLabels]
             .sort((a, b) => {
-              // Hovered label renders last (on top)
               if (a.nameEN === hoveredName) return 1;
               if (b.nameEN === hoveredName) return -1;
               return 0;
