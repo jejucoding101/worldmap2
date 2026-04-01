@@ -194,6 +194,34 @@ export const WorldMap = memo(() => {
               </Marker>
             );
           })}
+
+          {/* Quiz modes: show names on correctly answered countries */}
+          {(currentMode === 'PINPOINT' || currentMode === 'MULTIPLE_CHOICE') && labelData
+            .filter(label => correctAnswerIds.includes(label.id))
+            .map(label => {
+              const fontSize = Math.max(2, 5 / position.zoom);
+              return (
+                <Marker key={`correct-${label.id}`} coordinates={label.coordinates}>
+                  <text
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    style={{
+                      fontFamily: 'Outfit, sans-serif',
+                      fontSize: `${fontSize}px`,
+                      fill: '#34d399',
+                      fontWeight: 600,
+                      pointerEvents: 'none',
+                      paintOrder: 'stroke',
+                      stroke: '#060d18',
+                      strokeWidth: `${Math.max(0.3, 1 / position.zoom)}px`,
+                      strokeLinejoin: 'round',
+                    }}
+                  >
+                    {label.nameKO}
+                  </text>
+                </Marker>
+              );
+            })}
         </ZoomableGroup>
       </ComposableMap>
     </div>
