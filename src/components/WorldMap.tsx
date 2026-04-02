@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useMemo, useRef } from 'react';
+import { memo, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 'react-simple-maps';
 import { geoCentroid } from 'd3-geo';
 import { geoArea } from 'd3-geo';
@@ -15,6 +15,46 @@ const SMALL_AREA_THRESHOLD = 0.0003;  // ~Portugal, South Korea, Iceland...
 export const WorldMap = memo(() => {
   const { currentMode, targetCountry, submitAnswer, mistakeCount, correctAnswerIds, feedback, hintCountryIds, useHint } = useAppStore();
   const [hoveredName, setHoveredName] = useState<string | null>(null);
+
+  // STUDY 모드: 최근 본 나라 이름 페이드아웃 (5초)
+  const FADE_DURATION = 5000;
+  const [recentLabels, setRecentLabels] = useState<{ nameEN: string; addedAt: number }[]>([]);
+  const fadeTimerRef = useRef<number | null>(null);
+
+  // hoveredName이 바뀔 때 recentLabels 갱신
+  useEffect(() => {
+    if (currentMode !== 'STUDY') return;
+    if (hoveredName) {
+      setRecentLabels(prev => {
+        const filtered = prev.filter(r => r.nameEN !== hoveredName);
+        return [...filtered, { nameEN: hoveredName, addedAt: Date.now() }];
+      });
+    }
+  }, [hoveredName, currentMode]);
+
+  // 만료된 라벨 정리 타이머
+  useEffect(() => {
+    if (currentMode !== 'STUDY' || recentLabels.length === 0) return;
+    const tick = () => {
+      const now = Date.now();
+      setRecentLabels(prev => prev.filter(r => r.nameEN === hoveredName || now - r.addedAt < FADE_DURATION));
+    };
+    fadeTimerRef.current = window.setInterval(tick, 200);
+    return () => { if (fadeTimerRef.current) clearInterval(fadeTimerRef.current); };
+  }, [currentMode, recentLabels.length > 0, hoveredName]);
+
+  // 모드 변경 시 리셋
+  useEffect(() => {
+    if (currentMode !== 'STUDY') setRecentLabels([]);
+  }, [currentMode]);
+
+  const getRecentOpacity = useCallback((nameEN: string) => {
+    if (nameEN === hoveredName) return 1;
+    const entry = recentLabels.find(r => r.nameEN === nameEN);
+    if (!entry) return 0;
+    const elapsed = Date.now() - entry.addedAt;
+    return Math.max(0, 1 - elapsed / FADE_DURATION);
+  }, [recentLabels, hoveredName]);
 
   const [geoData, setGeoData] = useState<any[]>([]);
   const [position, setPosition] = useState({ coordinates: [0, 20] as [number, number], zoom: 1 });
@@ -140,8 +180,8 @@ export const WorldMap = memo(() => {
 
   return (
     <div className="w-full h-full relative" style={{ background: '#060d18' }}>
-      {/* Study/MAP mode tooltip */}
-      {(currentMode === 'STUDY' || currentMode === 'MAP') && currentHover && (
+      {/* MAP mode tooltip (top-left, MAP only) */}
+      {currentMode === 'MAP' && currentHover && (
         <div 
           className="absolute top-4 left-4 z-10 glass-panel p-4 rounded-xl animate-fade-in"
           style={{ borderLeft: '3px solid var(--color-cyan-accent)' }}
@@ -336,6 +376,42 @@ export const WorldMap = memo(() => {
                   </Marker>
                 );
               })}
+            </g>
+          ))}
+
+          {/* STUDY mode: show hovered + recently seen country names with fade-out */}
+          {currentMode === 'STUDY' && recentLabels.length > 0 && [-1, 0, 1].map(offset => (
+            <g key={`study-label-${offset}`} transform={`translate(${offset * 2 * Math.PI * 120}, 0)`}>
+              {labelData
+                .filter(label => recentLabels.some(r => r.nameEN === label.nameEN))
+                .map(label => {
+                  const fontSize = Math.max(3, 8 / position.zoom);
+                  const opacity = getRecentOpacity(label.nameEN);
+                  const isActive = label.nameEN === hoveredName;
+                  return (
+                    <Marker key={`study-${label.id}-${offset}`} coordinates={label.coordinates}>
+                      <text
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        style={{
+                          fontFamily: 'Outfit, sans-serif',
+                          fontSize: `${fontSize}px`,
+                          fill: isActive ? '#22d3ee' : '#67e8f9',
+                          fontWeight: isActive ? 700 : 500,
+                          opacity,
+                          pointerEvents: 'none',
+                          paintOrder: 'stroke',
+                          stroke: '#060d18',
+                          strokeWidth: `${Math.max(0.5, 2 / position.zoom)}px`,
+                          strokeLinejoin: 'round',
+                          transition: 'opacity 300ms ease-out, fill 150ms, font-weight 150ms',
+                        }}
+                      >
+                        {label.nameKO}
+                      </text>
+                    </Marker>
+                  );
+                })}
             </g>
           ))}
 
