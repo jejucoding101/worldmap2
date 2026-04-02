@@ -66,14 +66,24 @@ export const WorldMap = memo(() => {
 
   useEffect(() => {
     const onTouchStart = (e: TouchEvent) => {
-      touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      isDragRef.current = false;
+      if (e.touches.length > 1) {
+        // Multi-touch (zoom) is always considered a drag
+        isDragRef.current = true;
+      } else {
+        touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        isDragRef.current = false;
+      }
     };
     const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        isDragRef.current = true;
+        return;
+      }
       if (!touchStartRef.current) return;
       const dx = e.touches[0].clientX - touchStartRef.current.x;
       const dy = e.touches[0].clientY - touchStartRef.current.y;
-      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+      // Lower threshold for better sensitivity on mobile
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
         isDragRef.current = true;
       }
     };
