@@ -100,15 +100,15 @@ export const WorldMap = memo(() => {
         isDragRef.current = true;
       }
     };
-    window.addEventListener('touchstart', onPointerDown, { passive: true });
-    window.addEventListener('touchmove', onPointerMove, { passive: true });
-    window.addEventListener('pointerdown', onPointerDown, { passive: true });
-    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('touchstart', onPointerDown, { passive: true, capture: true });
+    window.addEventListener('touchmove', onPointerMove, { passive: true, capture: true });
+    window.addEventListener('pointerdown', onPointerDown, { passive: true, capture: true });
+    window.addEventListener('pointermove', onPointerMove, { passive: true, capture: true });
     return () => {
-      window.removeEventListener('touchstart', onPointerDown);
-      window.removeEventListener('touchmove', onPointerMove);
-      window.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('touchstart', onPointerDown, { capture: true });
+      window.removeEventListener('touchmove', onPointerMove, { capture: true });
+      window.removeEventListener('pointerdown', onPointerDown, { capture: true });
+      window.removeEventListener('pointermove', onPointerMove, { capture: true });
     };
   }, []);
 
