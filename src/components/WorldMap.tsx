@@ -60,38 +60,55 @@ export const WorldMap = memo(() => {
   const [position, setPosition] = useState({ coordinates: [0, 20] as [number, number], zoom: 1 });
   const [isAutoPanning, setIsAutoPanning] = useState(false);
 
-  // Touch drag detection: window-level to bypass SVG event interception
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  // Touch & Mouse drag detection: window-level to bypass SVG event interception
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const isDragRef = useRef(false);
 
   useEffect(() => {
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length > 1) {
-        // Multi-touch (zoom) is always considered a drag
-        isDragRef.current = true;
+    const onPointerDown = (e: MouseEvent | TouchEvent) => {
+      let clientX, clientY;
+      if ('touches' in e) {
+        if (e.touches.length > 1) { isDragRef.current = true; return; }
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
       } else {
-        touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        isDragRef.current = false;
+        clientX = e.clientX;
+        clientY = e.clientY;
       }
+      pointerStartRef.current = { x: clientX, y: clientY };
+      isDragRef.current = false;
     };
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length > 1) {
+    const onPointerMove = (e: MouseEvent | TouchEvent) => {
+      if ('touches' in e && e.touches.length > 1) {
         isDragRef.current = true;
         return;
       }
-      if (!touchStartRef.current) return;
-      const dx = e.touches[0].clientX - touchStartRef.current.x;
-      const dy = e.touches[0].clientY - touchStartRef.current.y;
-      // Lower threshold for better sensitivity on mobile
+      if (!pointerStartRef.current) return;
+      
+      let clientX, clientY;
+      if ('touches' in e) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        if (e.buttons === 0) return;
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      const dx = clientX - pointerStartRef.current.x;
+      const dy = clientY - pointerStartRef.current.y;
       if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
         isDragRef.current = true;
       }
     };
-    window.addEventListener('touchstart', onTouchStart, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchstart', onPointerDown, { passive: true });
+    window.addEventListener('touchmove', onPointerMove, { passive: true });
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
     return () => {
-      window.removeEventListener('touchstart', onTouchStart);
-      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchstart', onPointerDown);
+      window.removeEventListener('touchmove', onPointerMove);
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
     };
   }, []);
 
@@ -166,11 +183,17 @@ export const WorldMap = memo(() => {
         const centroid = geoCentroid(geo);
         const area = geoArea(geo);
         const overridden = LABEL_OVERRIDES[matched.nameEN];
+        let [lng, lat] = (overridden || centroid) as [number, number];
+        
+        // Wrap lng to match D3's geoMercator rotated boundaries [-30, 330] for visual alignment
+        while (lng < -30) lng += 360;
+        while (lng > 330) lng -= 360;
+
         return { 
           id: matched.id,
           nameKO: matched.nameKO,
           nameEN: matched.nameEN,
-          coordinates: (overridden || centroid) as [number, number],
+          coordinates: [lng, lat] as [number, number],
           area
         };
       })
@@ -319,9 +342,14 @@ export const WorldMap = memo(() => {
                       <Geography
                         key={`${geo.rsmKey}-${offset}`}
                         geography={geo}
-                        onPointerEnter={(e: React.PointerEvent) => { if (e.pointerType === 'mouse') setHoveredName(geoName); }}
-                        onPointerLeave={(e: React.PointerEvent) => { if (e.pointerType === 'mouse') setHoveredName(null); }}
-                        onClick={() => offset === 0 && handleCountryClick(geo)}
+                        onPointerEnter={(e: React.PointerEvent) => { 
+                          if (isDragRef.current || isAutoPanning || e.buttons > 0) return;
+                          if (e.pointerType === 'mouse') setHoveredName(geoName); 
+                        }}
+                        onPointerLeave={(e: React.PointerEvent) => { 
+                          if (e.pointerType === 'mouse') setHoveredName(null); 
+                        }}
+                        onClick={() => handleCountryClick(geo)}
                         style={{
                           default: {
                             fill,
