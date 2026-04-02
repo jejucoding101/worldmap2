@@ -338,32 +338,31 @@ export const WorldMap = memo(() => {
                       if (isTarget) fill = "#22d3ee";
                     }
 
+                    if ((currentMode === 'STUDY' || currentMode === 'MAP') && hoveredName === geoName && matchedCountry) {
+                      fill = "#22d3ee";
+                    }
+
+                    const stroke = (currentMode === 'STUDY' || currentMode === 'MAP') && hoveredName === geoName && matchedCountry ? "#67e8f9" : "#1a3355";
+                    const strokeWidth = (currentMode === 'STUDY' || currentMode === 'MAP') && hoveredName === geoName && matchedCountry ? 1.5 : 0.8;
+
                     return (
                       <Geography
                         key={`${geo.rsmKey}-${offset}`}
                         geography={geo}
-                        onPointerEnter={(e: React.PointerEvent) => { 
-                          if (isDragRef.current || isAutoPanning || e.buttons > 0) return;
-                          if (e.pointerType === 'mouse') setHoveredName(geoName); 
-                        }}
-                        onPointerLeave={(e: React.PointerEvent) => { 
-                          if (e.pointerType === 'mouse') setHoveredName(null); 
-                        }}
                         onClick={() => handleCountryClick(geo)}
                         style={{
                           default: {
                             fill,
                             outline: "none",
-                            stroke: "#1a3355",
-                            strokeWidth: 0.8,
+                            stroke,
+                            strokeWidth,
                             transition: 'all 250ms'
                           },
                           hover: {
-                            fill: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? "#22d3ee" : 
-                                 (currentMode === 'PINPOINT' ? "#f0a500" : fill),
+                            fill, // Same as default, disables hover jump
                             outline: "none",
-                            stroke: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? "#67e8f9" : "#1a3355",
-                            strokeWidth: (currentMode === 'STUDY' || currentMode === 'MAP') && matchedCountry ? 1.5 : 0.8,
+                            stroke,
+                            strokeWidth,
                             cursor: (currentMode === 'PINPOINT' || currentMode === 'STUDY' || currentMode === 'MAP') ? "pointer" : "default"
                           },
                           pressed: {
